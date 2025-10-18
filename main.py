@@ -1,38 +1,28 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
 import os
+from fastapi import FastAPI
+from pydantic import BaseModel
 
 app = FastAPI()
 
-# Directorio donde se guardarán los archivos
-FILES_DIRECTORY = "./files"
+class File(BaseModel):
+    name: str
+    content: str
 
-# Asegurarse de que el directorio exista
-os.makedirs(FILES_DIRECTORY, exist_ok=True)
-
-
+# Endpoint 1: Listar archivos
 @app.get("/files")
 async def list_files():
-    """
-    Este endpoint devuelve una lista de los archivos
-    disponibles en el servidor.
-    """
-    try:
-        files = os.listdir(FILES_DIRECTORY)
-        return {"files": files}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {"files": os.listdir("./files")}
 
-# --- NUEVO ENDPOINT ---
+# Endpoint 2: Ver el contenido de un archivo
 @app.get("/files/{file_name}")
 async def get_file_content(file_name: str):
-    """
-    Este endpoint devuelve el contenido de un archivo específico.
-    """
-    file_path = os.path.join(FILES_DIRECTORY, file_name)
+    with open(f"./files/{file_name}", "r", encoding="utf-8") as f:
+        content = f.read()
+    return {"content": content}
 
-    if not os.path.exists(file_path):
-        # Si el archivo no existe, devolvemos un error 404
-        raise HTTPException(status_code=404, detail="File not found")
-
-    return FileResponse(path=file_path)
+# Endpoint 3: Crear un archivo
+@app.post("/files")
+async def create_file(file: File):
+    with open(f"./files/{file.name}", "w", encoding="utf-8") as f:
+        f.write(file.content)
+    return {"message": f"Archivo '{file.name}' creado."}
